@@ -13,10 +13,25 @@ using namespace std;
 
 void onCollision(Collision *What)
 {
-    What->A->vx *= -0.5;
-    What->B->vx *= -0.5;
-    What->A->vy *= -0.5;
-    What->B->vy *= -0.5;
+    if (What->A != nullptr)
+    {
+        What->A->vx *= -0.5;
+        What->A->vy *= -0.5;
+    }
+    else
+    {
+        cout << "BOUNCE\n";
+    }
+
+    if (What->B != nullptr)
+    {
+        What->B->vx *= -0.5;
+        What->B->vy *= -0.5;
+    }
+    else
+    {
+        cout << "BOUNCE\n";
+    }
 
     return;
 }
@@ -52,7 +67,8 @@ int main(const int argc, const char *argv[])
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_CreateWindowAndRenderer(512, 512, SDL_WINDOW_OPENGL, &wind, &rend);
 
-    for (double t = 0; t < 100; t += 0.1)
+    bool isRunning = true;
+    for (double t = 0; isRunning; t += 0.1)
     {
         handler.setTime(t);
 
@@ -76,6 +92,21 @@ int main(const int argc, const char *argv[])
 
         SDL_RenderPresent(rend);
         SDL_Delay(1);
+
+        // Handle events
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_KEYDOWN)
+            {
+                switch (event.key.keysym.sym)
+                {
+                case 27:
+                    isRunning = false;
+                    break;
+                }
+            }
+        }
     }
 
     SDL_DestroyWindow(wind);

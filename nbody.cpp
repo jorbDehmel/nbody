@@ -15,12 +15,13 @@ bool __collision_order::operator()(const Collision &A, const Collision &B) const
 }
 
 // If ToMonitor is dynamically allocated, that's the user's problem
-CollisionHandler::CollisionHandler(Body **ToMonitor, const int &N, void (*OnCollision)(Collision *))
+CollisionHandler::CollisionHandler(Body **ToMonitor, const int &N, void (*OnCollision)(Collision *), double (*PredictCollision)(const Body *const A, const Body *const B))
 {
     // Localize vars
     bodies = ToMonitor;
     numBodies = N;
     onCollision = OnCollision;
+    predictCollision = PredictCollision;
 
     // Initialize pq: O(n^2)
     for (int i = 0; i < numBodies; i++)
@@ -176,7 +177,8 @@ If t_y == t_x, the answer is either of these. Otherwise, it's -1.
 
 // Using the current velocities and positions, predict the collision time of two bodies
 // NOTE: Denotes no collision as -1
-double CollisionHandler::predictCollisionTime(const Body *A, const Body *B)
+double minX = -100, maxX = 100, minY = -100, maxY = 100;
+double __predictCollisionTime(const Body *const A, const Body *const B)
 {
     double tx, ty;
 
@@ -264,7 +266,7 @@ double CollisionHandler::predictCollisionTime(const Body *A, const Body *B)
 void CollisionHandler::addCollision(Body *A, Body *B)
 {
     // Predict the time of collision
-    double predicted = predictCollisionTime(A, B);
+    double predicted = predictCollision(A, B);
 
     // If value is garbage, continue
     // NOTE: Infinity is denoted by -1 in this case, since time will only be positive

@@ -33,18 +33,19 @@ public:
     bool operator()(const Collision &A, const Collision &B) const;
 };
 
+extern double minX, maxX, minY, maxY;
+double __predictCollisionTime(const Body *const A, const Body *const B);
+
 class CollisionHandler
 {
 public:
-    CollisionHandler(Body **ToMonitor, const int &N, void (*OnCollision)(Collision *));
+    CollisionHandler(Body **ToMonitor, const int &N, void (*OnCollision)(Collision *), double (*PredictCollision)(const Body *const A, const Body *const B) = __predictCollisionTime);
 
     void next();
     bool empty() const;
 
     void setTime(const double &To);
     double getTime() const;
-
-    double minX = -256, maxX = 256, minY = -256, maxY = 256;
 
 protected:
     double t;
@@ -53,9 +54,10 @@ protected:
     int numBodies;
 
     void (*onCollision)(Collision *);
+    double (*predictCollision)(const Body *const A, const Body *const B);
+
     priority_queue<Collision, vector<Collision>, __collision_order> events;
 
-    double predictCollisionTime(const Body *A, const Body *B);
     void addCollision(Body *A, Body *B);
 };
 

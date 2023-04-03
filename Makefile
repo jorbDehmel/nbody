@@ -4,7 +4,7 @@ EXE := main.out
 
 CC := clang++
 LFLAGS := `sdl2-config --libs`
-CFLAGS := -Wall -Werror -pedantic `sdl2-config --cflags`
+CFLAGS := -Wall -Werror -pedantic -g `sdl2-config --cflags`
 
 all: $(SOURCES) $(EXE)
 
