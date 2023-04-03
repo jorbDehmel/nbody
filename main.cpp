@@ -13,27 +13,29 @@ using namespace std;
 
 void onCollision(Collision *What)
 {
-    cout << "A collision occurred!\n"
-         << "X: " << What->A->x << '\n'
-         << "Y: " << What->A->y << '\n'
-         << "T: " << What->time << '\n';
+    What->A->vx *= -0.5;
+    What->B->vx *= -0.5;
+    What->A->vy *= -0.5;
+    What->B->vy *= -0.5;
 
     return;
 }
 
 int main(const int argc, const char *argv[])
 {
-    const int numBodies = 2;
+    srand(time(NULL));
+
+    const int numBodies = 20;
     Body bodies[numBodies];
 
-    bodies[0].x = -50;
-    bodies[0].vx = 1;
+    for (int i = 0; i < numBodies; i++)
+    {
+        bodies[i].x = (rand() % 101) - 50;
+        bodies[i].y = (rand() % 101) - 50;
 
-    bodies[1].x = 50;
-    bodies[1].vx = -1;
-
-    bodies[0].y = bodies[1].y = 50;
-    bodies[0].vy = bodies[1].vy = 1;
+        bodies[i].vx = (rand() % 11) - 5;
+        bodies[i].vy = (rand() % 11) - 5;
+    }
 
     Body *refs[numBodies];
     for (int i = 0; i < numBodies; i++)
@@ -61,7 +63,7 @@ int main(const int argc, const char *argv[])
         // Render bodies
         for (int i = 0; i < numBodies; i++)
         {
-            SDL_SetRenderDrawColor(rend, i * 255, 255, 255, 255);
+            SDL_SetRenderDrawColor(rend, (i * 16) % 255, 255, 255, 255);
 
             SDL_FRect rect{0, 0, 0, 0};
             rect.x = 256 + bodies[i].x;
@@ -70,15 +72,20 @@ int main(const int argc, const char *argv[])
             rect.h = max(bodies[i].vy, 1.0);
 
             SDL_RenderFillRectF(rend, &rect);
-            SDL_Delay(1);
         }
 
         SDL_RenderPresent(rend);
+        SDL_Delay(1);
     }
 
     SDL_DestroyWindow(wind);
     SDL_DestroyRenderer(rend);
     SDL_Quit();
+
+    for (int i = 0; i < numBodies; i++)
+    {
+        cout << "i=" << i << ": " << bodies[i].collisions << '\n';
+    }
 
     return 0;
 }

@@ -27,19 +27,12 @@ CollisionHandler::CollisionHandler(Body **ToMonitor, const int &N, void (*OnColl
     {
         for (int j = i + 1; j < numBodies; j++)
         {
-            // Predict the time of collision
-            double predicted = predictCollisionTime(bodies[i], bodies[j]);
-
-            // Construct collision event at the calculated time
-            Collision toAdd{bodies[i],
-                            bodies[j],
-                            bodies[i]->collisions,
-                            bodies[j]->collisions,
-                            predicted};
-
-            // Add collision to event pq
-            events.push(toAdd);
+            addCollision(bodies[i], bodies[j]);
         }
+
+        // Wall collisions
+        addCollision(bodies[i], nullptr);
+        addCollision(nullptr, bodies[i]);
     }
 
     return;
@@ -58,7 +51,7 @@ void CollisionHandler::next()
 
         event = events.top();
         events.pop();
-    } while (event.time < 0 || event.collisionsA != event.A->collisions || event.collisionsB != event.B->collisions);
+    } while (event.time < 0 || (event.A != nullptr && event.collisionsA != event.A->collisions) || (event.B != nullptr && event.collisionsB != event.B->collisions));
 
     // Update time
     double deltaT = event.time - t;
@@ -75,8 +68,15 @@ void CollisionHandler::next()
     onCollision(&event);
 
     // Increment body collision counts
-    event.A->collisions++;
-    event.B->collisions++;
+    if (event.A != nullptr)
+    {
+        event.A->collisions++;
+    }
+
+    if (event.B != nullptr)
+    {
+        event.B->collisions++;
+    }
 
     // Recalculate necessary collisions: O(2n)
     // For body A:
@@ -91,20 +91,13 @@ void CollisionHandler::next()
         // Otherwise, add collision
         else
         {
-            // Predict the time of collision
-            double predicted = predictCollisionTime(event.A, bodies[i]);
-
-            // Construct collision event at the calculated time
-            Collision toAdd{event.A,
-                            bodies[i],
-                            event.A->collisions,
-                            bodies[i]->collisions,
-                            predicted};
-
-            // Add collision to event pq
-            events.push(toAdd);
+            addCollision(event.A, bodies[i]);
         }
     }
+
+    // Wall collisions
+    addCollision(event.A, nullptr);
+    addCollision(nullptr, event.A);
 
     // For body B:
     for (int i = 0; i < numBodies; i++)
@@ -118,27 +111,13 @@ void CollisionHandler::next()
         // Otherwise, add collision
         else
         {
-            // Predict the time of collision
-            double predicted = predictCollisionTime(event.B, bodies[i]);
-
-            // If value is garbage, continue
-            // NOTE: Infinity is denoted by -1 in this case, since time will only be positive
-            if (predicted < 0)
-            {
-                continue;
-            }
-
-            // Construct collision event at the calculated time
-            Collision toAdd{event.B,
-                            bodies[i],
-                            event.B->collisions,
-                            bodies[i]->collisions,
-                            predicted};
-
-            // Add collision to event pq
-            events.push(toAdd);
+            addCollision(event.B, bodies[i]);
         }
     }
+
+    // Wall collisions
+    addCollision(event.B, nullptr);
+    addCollision(nullptr, event.B);
 
     return;
 }
@@ -199,9 +178,60 @@ If t_y == t_x, the answer is either of these. Otherwise, it's -1.
 // NOTE: Denotes no collision as -1
 double CollisionHandler::predictCollisionTime(const Body *A, const Body *B)
 {
-    // Much easier equations than I was expecting
-    double tx = (B->x - A->x) / (A->vx - B->vx);
-    double ty = (B->y - A->y) / (A->vy - B->vy);
+    double tx, ty;
+
+    // Neither are real bodies
+    if (A == nullptr && B == nullptr)
+    {
+        // Wall colliding with wall, failure case
+        return -2;
+    }
+
+    // Vertical wall: Only x matters
+    else if (B == nullptr)
+    {
+        if (A->vx > 0)
+        {
+            // Right wall
+            return (maxX - A->x) / A->vx;
+        }
+        else if (A->vx < 0)
+        {
+            // Left wall
+            return (minX - A->x) / A->vx;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    // Horizontal wall: Only y matters
+    else if (A == nullptr)
+    {
+        if (B->vx > 0)
+        {
+            // Roof
+            return (B->y - minY) / -B->vy;
+        }
+        else if (B->vx < 0)
+        {
+            // Floor
+            return (B->y - maxY) / -B->vy;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    // Both real bodies
+    else
+    {
+        // Much easier equations than I was expecting
+        tx = (B->x - A->x) / (A->vx - B->vx);
+        ty = (B->y - A->y) / (A->vy - B->vy);
+    }
 
     // cout << "tx: " << tx << '\n'
     //      << "ty: " << ty << '\n';
@@ -229,4 +259,32 @@ double CollisionHandler::predictCollisionTime(const Body *A, const Body *B)
     {
         return -1;
     }
+}
+
+void CollisionHandler::addCollision(Body *A, Body *B)
+{
+    // Predict the time of collision
+    double predicted = predictCollisionTime(A, B);
+
+    // If value is garbage, continue
+    // NOTE: Infinity is denoted by -1 in this case, since time will only be positive
+    if (predicted < 0)
+    {
+        return;
+    }
+
+    // Allow for nullptr entries
+    int collisionsA, collisionsB;
+    collisionsA = (A == nullptr) ? 0 : A->collisions;
+    collisionsB = (B == nullptr) ? 0 : B->collisions;
+
+    // Construct collision event at the calculated time
+    Collision toAdd{A,
+                    B,
+                    collisionsA,
+                    collisionsB,
+                    predicted};
+
+    // Add collision to event pq
+    events.push(toAdd);
 }

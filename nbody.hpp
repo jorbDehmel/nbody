@@ -44,6 +44,8 @@ public:
     void setTime(const double &To);
     double getTime() const;
 
+    double minX = -256, maxX = 256, minY = -256, maxY = 256;
+
 protected:
     double t;
 
@@ -54,6 +56,7 @@ protected:
     priority_queue<Collision, vector<Collision>, __collision_order> events;
 
     double predictCollisionTime(const Body *A, const Body *B);
+    void addCollision(Body *A, Body *B);
 };
 
 #endif
