@@ -289,4 +289,6 @@ void CollisionHandler::addCollision(Body *A, Body *B)
 
     // Add collision to event pq
     events.push(toAdd);
+
+    return;
 }
